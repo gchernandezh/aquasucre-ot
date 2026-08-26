@@ -15,21 +15,66 @@ def inicio():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
+        # ==========================================
+        # CONSULTAR ÓRDENES DE TRABAJO
+        # ==========================================
+
         cursor.execute("""
-            SELECT id_tecnico, nombre, telefono, especialidad, estado
+            SELECT
+                id_ot,
+                id_pqr,
+                tipo_servicio,
+                descripcion,
+                direccion,
+                prioridad,
+                estado,
+                id_tecnico
+            FROM ordenes_trabajo
+            ORDER BY id_ot DESC
+        """)
+
+        ordenes = cursor.fetchall()
+
+        filas_ordenes = ""
+
+        for ot in ordenes:
+            tecnico = ot[7] if ot[7] is not None else "Sin asignar"
+            estado = ot[6] if ot[6] is not None else "Sin estado"
+
+            filas_ordenes += f"""
+            <tr>
+                <td>{ot[0]}</td>
+                <td>{ot[1]}</td>
+                <td>{ot[2]}</td>
+                <td>{ot[3]}</td>
+                <td>{ot[4]}</td>
+                <td>{ot[5]}</td>
+                <td>{estado}</td>
+                <td>{tecnico}</td>
+            </tr>
+            """
+
+        # ==========================================
+        # CONSULTAR TÉCNICOS
+        # ==========================================
+
+        cursor.execute("""
+            SELECT
+                id_tecnico,
+                nombre,
+                telefono,
+                especialidad,
+                estado
             FROM tecnicos
             ORDER BY id_tecnico
         """)
 
         tecnicos = cursor.fetchall()
 
-        cursor.close()
-        conexion.close()
-
-        filas = ""
+        filas_tecnicos = ""
 
         for tecnico in tecnicos:
-            filas += f"""
+            filas_tecnicos += f"""
             <tr>
                 <td>{tecnico[0]}</td>
                 <td>{tecnico[1]}</td>
@@ -39,9 +84,14 @@ def inicio():
             </tr>
             """
 
+        cursor.close()
+        conexion.close()
+
         return f"""
         <!DOCTYPE html>
+
         <html lang="es">
+
         <head>
             <meta charset="UTF-8">
             <title>AquaSucre OT</title>
@@ -60,6 +110,28 @@ def inicio():
 
             <hr>
 
+            <h2>Órdenes de Trabajo</h2>
+
+            <table border="1" cellpadding="8">
+
+                <tr>
+                    <th>OT</th>
+                    <th>PQR</th>
+                    <th>Servicio</th>
+                    <th>Descripción</th>
+                    <th>Dirección</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Técnico</th>
+                </tr>
+
+                {filas_ordenes}
+
+            </table>
+
+            <br>
+            <hr>
+
             <h2>Técnicos registrados</h2>
 
             <table border="1" cellpadding="8">
@@ -72,19 +144,21 @@ def inicio():
                     <th>Estado</th>
                 </tr>
 
-                {filas}
+                {filas_tecnicos}
 
             </table>
 
             <br>
 
-            <strong>AquaSucre OT - Versión 1.1</strong>
+            <strong>AquaSucre OT - Versión 1.2</strong>
 
         </body>
+
         </html>
         """
 
     except Exception as error:
+
         return f"""
         <h1>AquaSucre OT</h1>
 
