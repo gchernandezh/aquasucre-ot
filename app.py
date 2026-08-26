@@ -165,6 +165,134 @@ def inicio():
         <h2>Error conectando con la base de datos</h2>
 
         <p>{error}</p>
+ 
+        """
+
+
+@app.route("/asignar/<int:id_ot>")
+def asignar(id_ot):
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        # Consultar la OT seleccionada
+        cursor.execute("""
+            SELECT
+                id_ot,
+                id_pqr,
+                tipo_servicio,
+                descripcion,
+                direccion,
+                prioridad,
+                estado
+            FROM ordenes_trabajo
+            WHERE id_ot = %s
+        """, (id_ot,))
+
+        ot = cursor.fetchone()
+
+        # Consultar técnicos activos
+        cursor.execute("""
+            SELECT
+                id_tecnico,
+                nombre,
+                especialidad
+            FROM tecnicos
+            WHERE UPPER(estado) = 'ACTIVO'
+            ORDER BY nombre
+        """)
+
+        tecnicos = cursor.fetchall()
+
+        cursor.close()
+        conexion.close()
+
+        if ot is None:
+            return "<h2>Orden de trabajo no encontrada</h2>", 404
+
+        opciones = ""
+
+        for tecnico in tecnicos:
+            opciones += f"""
+                <option value="{tecnico[0]}">
+                    {tecnico[1]} - {tecnico[2]}
+                </option>
+            """
+
+        return f"""
+        <!DOCTYPE html>
+
+        <html lang="es">
+
+        <head>
+            <meta charset="UTF-8">
+            <title>Asignar OT - AquaSucre</title>
+        </head>
+
+        <body>
+
+            <h1>AquaSucre</h1>
+
+            <h2>Asignar Orden de Trabajo</h2>
+
+            <hr>
+
+            <h3>OT #{ot[0]}</h3>
+
+            <p><strong>PQR:</strong> {ot[1]}</p>
+
+            <p><strong>Servicio:</strong> {ot[2]}</p>
+
+            <p><strong>Descripción:</strong> {ot[3]}</p>
+
+            <p><strong>Dirección:</strong> {ot[4]}</p>
+
+            <p><strong>Prioridad:</strong> {ot[5]}</p>
+
+            <p><strong>Estado:</strong> {ot[6]}</p>
+
+            <hr>
+
+            <h3>Seleccionar técnico</h3>
+
+            <form method="POST"
+                  action="/confirmar-asignacion/{ot[0]}">
+
+                <select name="id_tecnico" required>
+
+                    <option value="">
+                        -- Seleccione un técnico --
+                    </option>
+
+                    {opciones}
+
+                </select>
+
+                <br><br>
+
+                <button type="submit">
+                    Confirmar asignación
+                </button>
+
+            </form>
+
+            <br>
+
+            <a href="/">
+                Volver al Gestor de OT
+            </a>
+
+        </body>
+
+        </html>
+        """
+
+    except Exception as error:
+
+        return f"""
+            <h2>Error consultando la orden de trabajo</h2>
+            <p>{error}</p>
         """
 
 
