@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, redirect, url_for
 import os
 import psycopg2
 
@@ -295,6 +295,70 @@ def asignar(id_ot):
             <p>{error}</p>
         """
 
+@app.route("/confirmar-asignacion/<int:id_ot>", methods=["POST"])
+def confirmar_asignacion(id_ot):
 
+    conexion = None
+    cursor = None
+
+    try:
+        id_tecnico = request.form.get("id_tecnico")
+
+        if not id_tecnico:
+            return "<h2>Debe seleccionar un técnico.</h2>", 400
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        # Verificar que el técnico exista y esté activo
+        cursor.execute("""
+            SELECT id_tecnico
+            FROM tecnicos
+            WHERE id_tecnico = %s
+              AND UPPER(estado) = 'ACTIVO'
+        """, (id_tecnico,))
+
+        tecnico = cursor.fetchone()
+
+        if tecnico is None:
+            return "<h2>El técnico seleccionado no existe o no está activo.</h2>", 400
+
+        # Asignar técnico a la orden de trabajo
+        cursor.execute("""
+            UPDATE ordenes_trabajo
+            SET
+                id_tecnico = %s,
+                estado = 'ASIGNADA',
+                fecha_asignacion = CURRENT_TIMESTAMP
+            WHERE id_ot = %s
+        """, (id_tecnico, id_ot))
+
+        if cursor.rowcount == 0:
+            conexion.rollback()
+            return "<h2>Orden de trabajo no encontrada.</h2>", 404
+
+        conexion.commit()
+
+        return redirect(url_for("inicio"))
+
+    except Exception as error:
+
+        if conexion:
+            conexion.rollback()
+
+        return f"""
+            <h1>AquaSucre OT</h1>
+            <h2>Error realizando la asignación</h2>
+            <p>{error}</p>
+        """, 500
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+            
 if __name__ == "__main__":
     app.run()
