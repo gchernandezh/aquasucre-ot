@@ -21,16 +21,18 @@ def inicio():
 
         cursor.execute("""
             SELECT
-                id_ot,
-                id_pqr,
-                tipo_servicio,
-                descripcion,
-                direccion,
-                prioridad,
-                estado,
-                id_tecnico
-            FROM ordenes_trabajo
-            ORDER BY id_ot DESC
+                ot.id_ot,
+                ot.id_pqr,
+                ot.tipo_servicio,
+                ot.descripcion,
+                ot.direccion,
+                ot.prioridad,
+                ot.estado,
+                t.nombre
+            FROM ordenes_trabajo ot
+            LEFT JOIN tecnicos t
+                ON ot.id_tecnico = t.id_tecnico
+            ORDER BY ot.id_ot DESC
         """)
 
         ordenes = cursor.fetchall()
